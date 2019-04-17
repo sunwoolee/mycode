@@ -1,7 +1,65 @@
+#%%
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import math
+
+class linear_ifa(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, input, weight, bias, dummies):
+        """
+        Add dummies from the activations of layers you want the ifa to transfer errors
+        """
+        output = F.linear(input, weight, bias)
+        ctx.save_for_backward(input, weight, bias, *dummies)
+        return output
+    
+    @staticmethod
+    def backward(ctx, grad_output):
+        input, weight, bias, dummies = ctx.saved_tensors
+        grad_input = grad_weight = grad_bias = None
+        grad_weight = F.linear(input.t(), grad_output.t()).t()
+        if bias is not None:
+            grad_bias = grad_output.sum(0).squeeze(0)
+        grad_input = grad_output.clone()
+        grad_dummies = [grad_output.clone() for dummy in dummies]
+        return tuple([grad_input, grad_weight, grad_bias, *grad_dummies])
+
+class feedback_reciever(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, input, weight_fb):
+        """
+        Dummy should be attached to the IFA layer for proper IFA error calculation
+        weight_fb : of shape (input, ifa_neurons)
+        grad_dummy: of shape (batch_size, ifa_neurons)
+        """
+        output = input.clone()
+        dummy = torch.Tensor()
+        ctx.save_for_backward(input, weight_fb)
+        return output, dummy
+    
+    @staticmethod
+    def backward(ctx, grad_output, grad_dummy):
+        input, weight_fb = ctx.saved_tensors
+        grad_weight_fb = None
+        grad_input = F.linear(grad_dummy, weight_fb) # Batch_size, input
+        return grad_input, grad_weight_fb
+        
+class Linear_IFA(nn.Module):
+    def __init__(self, in_features, out_features, bias=True):
+        super(Linear_IFA, self).__init__()
+        self.in_features = in_features
+        self.out_features = out_features
+        self.weight = nn.Parameter(torch.Tensor(out_features, in_features))
+        if bias:
+            self.bias = nn.Parameter(torch.tensor(out_features).zero_())
+        else:
+            self.register_parameter('bias', None)
+        nn.init.kaiming_uniform_(self.weight)
+    
+    def forward(self, input, dummies):
+        return linear_ifa.apply(input, self.weight, self.bias, dummies)
+        
 
 class linear_fa(torch.autograd.Function):
     @staticmethod
@@ -12,13 +70,14 @@ class linear_fa(torch.autograd.Function):
 
     @staticmethod
     def backward(ctx, grad_output):
-        input, weight, bias, weight_fa = ctx.saved_variables
+        input, weight, bias, weight_fa = ctx.saved_tensors
         grad_input = grad_weight = grad_bias = grad_weight_fa = None
         grad_weight = F.linear(input.t(), grad_output.t()).t()
         if bias is not None:
             grad_bias = grad_output.sum(0).squeeze(0)
         grad_input = F.linear(grad_output, weight_fa.t())
         return grad_input, grad_weight, grad_bias, grad_weight_fa
+
 
 class Linear_FA(nn.Module):
     def __init__(self, in_features, out_features, bias=True):
@@ -102,10 +161,7 @@ loss = F.nll_loss(y, y_t)
 y_base = F.log_softmax(lin2_check(lin1_check((conv2_base(conv1_base(inputx)).view(-1,10)))))
 y_t_base = torch.Tensor([2,4]).long()
 loss_base = F.nll_loss(y_base, y_t_base)
-"""
-Checked that gradient values are same!
-"""
-#%%
 loss_base.backward()
 loss.backward()
 print((conv1_check.weight.grad - conv1_base.weight.grad).abs().sum())
+print((conv1_base.bias.grad-conv1_check.bias.grad).abs().sum())
