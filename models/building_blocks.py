@@ -64,14 +64,18 @@ class Linear_IFA(nn.Module):
         
 
 class Feedback_Reciever(nn.Module):
-    def __init__(self, in_features, connect_features):
+    def __init__(self, connect_features):
         super(Feedback_Reciever, self).__init__()
-        self.in_features = in_features
+        # self.in_features = in_features
         self.connect_features = connect_features
-        self.weight_fb = nn.Parameter(torch.Tensor(connect_features, in_features))
-        nn.init.kaiming_uniform_(self.weight_fb)
+        # self.weight_fb = nn.Parameter(torch.Tensor(connect_features, in_features))
+        # nn.init.kaiming_uniform_(self.weight_fb)
+        self.weight_fb = None
     
     def forward(self, input):
+        if self.weight_fb is None:
+            self.weight_fb = nn.Parameter(torch.Tensor(self.connect_features, *input.size()[1:]).view(self.connect_features, -1)).to(input.device)
+            nn.init.kaiming_uniform_(self.weight_fb)
         return feedback_reciever.apply(input, self.weight_fb)
         
     

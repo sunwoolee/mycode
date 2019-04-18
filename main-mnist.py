@@ -5,7 +5,7 @@ import torchvision.datasets as dsets
 import torchvision.transforms as transforms
 from models.building_blocks import *
 from torch.autograd import Variable
-
+import time
 #%%
 # Hyper Parameters 
 input_size = 784
@@ -41,8 +41,8 @@ class Net(nn.Module):
         self.fc1 = nn.Linear(input_size, hidden_size) 
         self.fc2 = nn.Linear(hidden_size, hidden_size)
         self.fc3 = Linear_IFA(hidden_size, num_classes)
-        self.fb1 = Feedback_Reciever(hidden_size, 10)
-        self.fb2 = Feedback_Reciever(hidden_size, 10)
+        self.fb1 = Feedback_Reciever(10)
+        self.fb2 = Feedback_Reciever(10)
     
     def forward(self, x):
         out = self.fc1(x)
@@ -57,8 +57,8 @@ net.cuda()
     #%%
 # Loss and Optimizer
 criterion = nn.NLLLoss()  
-optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate)  
-
+optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, net.parameters()), lr=learning_rate)  
+t0 = time.time()
 # Train the Model
 for epoch in range(num_epochs):
     for i, (images, labels) in enumerate(train_loader):  
@@ -88,6 +88,7 @@ for images, labels in test_loader:
     correct += (predicted.cpu() == labels).sum()
 
 print('Accuracy of the network on the 10000 test images: %d %%' % (100 * correct / total))
+print('Total Time: %.2f'%(time.time()-t0))
 #%%
 # Save the Model
 torch.save(net.state_dict(), 'model.pkl')
