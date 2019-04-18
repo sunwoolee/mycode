@@ -8,8 +8,8 @@ class LeNet_FA(nn.Module):
         self.conv1 = Conv2d_FA(3,6,5)
         self.conv2 = Conv2d_FA(6,16,5)
         self.fc1 = Linear_FA(16*5*5, 120)
-        self.fc2 = Linear_FA(120, 84)
-        self.fc3 = Linear_FA(84, 10)
+        self.fc2 = nn.Linear(120, 84)
+        self.fc3 = nn.Linear(84, 10)
     
     def forward(self, x):
         out = F.relu(self.conv1(x))
@@ -29,7 +29,7 @@ class LeNet_DFA(nn.Module):
         self.conv1_fb = Feedback_Reciever(10)
         self.conv2 = nn.Conv2d(6,16,5)
         self.conv2_fb = Feedback_Reciever(10)
-        self.fc1 = nn.Linear_FA(16*5*5, 120)
+        self.fc1 = nn.Linear(16*5*5, 120)
         self.fc1_fb = Feedback_Reciever(10)
         self.fc2 = nn.Linear(120, 84)
         self.fc2_fb = Feedback_Reciever(10)

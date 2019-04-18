@@ -159,7 +159,7 @@ class Conv2d_FA(nn.Module):
         return conv2d_fa.apply(input, self.weight, self.bias, self.weight_fa, self.stride, self.padding)
 
 #%%
-"""Sanity Check"""
+"""Sanity Check
 conv1_check = Conv2d_FA(3,4,5)
 conv1_base = nn.Conv2d(3,4,5)
 conv2_check = Conv2d_FA(4,10,3)
@@ -183,3 +183,4 @@ loss_base.backward()
 loss.backward()
 print((conv1_check.weight.grad - conv1_base.weight.grad).abs().sum())
 print((conv1_base.bias.grad-conv1_check.bias.grad).abs().sum())
+"""
