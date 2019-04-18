@@ -25,6 +25,7 @@ class linear_ifa(torch.autograd.Function):
         grad_dummies = [grad_output.clone() for dummy in dummies]
         return tuple([grad_input, grad_weight, grad_bias, *grad_dummies])
 
+
 class feedback_reciever(torch.autograd.Function):
     @staticmethod
     def forward(ctx, input, weight_fb):
@@ -34,7 +35,7 @@ class feedback_reciever(torch.autograd.Function):
         grad_dummy: of shape (batch_size, ifa_neurons)
         """
         output = input.clone()
-        dummy = torch.Tensor()
+        dummy = torch.Tensor(input.size()).zero_()
         ctx.save_for_backward(input, weight_fb)
         return output, dummy
     
@@ -42,9 +43,10 @@ class feedback_reciever(torch.autograd.Function):
     def backward(ctx, grad_output, grad_dummy):
         input, weight_fb = ctx.saved_tensors
         grad_weight_fb = None
-        grad_input = F.linear(grad_dummy, weight_fb) # Batch_size, input
+        grad_input = torch.mm(grad_dummy, weight_fb).view(input.size()) # Batch_size, input
         return grad_input, grad_weight_fb
         
+
 class Linear_IFA(nn.Module):
     def __init__(self, in_features, out_features, bias=True):
         super(Linear_IFA, self).__init__()
@@ -61,6 +63,18 @@ class Linear_IFA(nn.Module):
         return linear_ifa.apply(input, self.weight, self.bias, dummies)
         
 
+class Feedback_Reciever(nn.Module):
+    def __init__(self, in_features, connect_features):
+        super(Feedback_Reciever, self).__init__()
+        self.in_features = in_features
+        self.connect_features = connect_features
+        self.weight_fb = nn.Parameter(torch.Tensor(connect_features, in_features))
+        nn.init.kaiming_uniform_(self.weight)
+    
+    def forward(self, input):
+        return feedback_reciever.apply(input, self.weight_fb)
+        
+    
 class linear_fa(torch.autograd.Function):
     @staticmethod
     def forward(ctx, input, weight, bias, weight_fa):
