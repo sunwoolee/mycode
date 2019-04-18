@@ -6,7 +6,7 @@ import math
 
 class linear_ifa(torch.autograd.Function):
     @staticmethod
-    def forward(ctx, input, weight, bias, dummies):
+    def forward(ctx, input, weight, bias, *dummies):
         """
         Add dummies from the activations of layers you want the ifa to transfer errors
         """
@@ -16,12 +16,12 @@ class linear_ifa(torch.autograd.Function):
     
     @staticmethod
     def backward(ctx, grad_output):
-        input, weight, bias, dummies = ctx.saved_tensors
+        input, weight, bias, *dummies = ctx.saved_tensors
         grad_input = grad_weight = grad_bias = None
         grad_weight = F.linear(input.t(), grad_output.t()).t()
         if bias is not None:
             grad_bias = grad_output.sum(0).squeeze(0)
-        grad_input = grad_output.clone()
+        grad_input = torch.Tensor(input.size()).zero_().to(input.device)
         grad_dummies = [grad_output.clone() for dummy in dummies]
         return tuple([grad_input, grad_weight, grad_bias, *grad_dummies])
 
@@ -35,7 +35,7 @@ class feedback_reciever(torch.autograd.Function):
         grad_dummy: of shape (batch_size, ifa_neurons)
         """
         output = input.clone()
-        dummy = torch.Tensor(input.size()).zero_()
+        dummy = torch.Tensor(input.size()[0],weight_fb.size()[0]).zero_().to(input.device)
         ctx.save_for_backward(input, weight_fb)
         return output, dummy
     
@@ -54,13 +54,13 @@ class Linear_IFA(nn.Module):
         self.out_features = out_features
         self.weight = nn.Parameter(torch.Tensor(out_features, in_features))
         if bias:
-            self.bias = nn.Parameter(torch.tensor(out_features).zero_())
+            self.bias = nn.Parameter(torch.Tensor(out_features).zero_())
         else:
             self.register_parameter('bias', None)
         nn.init.kaiming_uniform_(self.weight)
     
-    def forward(self, input, dummies):
-        return linear_ifa.apply(input, self.weight, self.bias, dummies)
+    def forward(self, input, *dummies):
+        return linear_ifa.apply(input, self.weight, self.bias, *dummies)
         
 
 class Feedback_Reciever(nn.Module):
@@ -69,7 +69,7 @@ class Feedback_Reciever(nn.Module):
         self.in_features = in_features
         self.connect_features = connect_features
         self.weight_fb = nn.Parameter(torch.Tensor(connect_features, in_features))
-        nn.init.kaiming_uniform_(self.weight)
+        nn.init.kaiming_uniform_(self.weight_fb)
     
     def forward(self, input):
         return feedback_reciever.apply(input, self.weight_fb)
