@@ -26,6 +26,29 @@ class linear_ifa(torch.autograd.Function):
         return tuple([grad_input, grad_weight, grad_bias, *grad_dummies])
 
 
+class conv2d_ifa(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, input, weight, bias,  stride=1, padding=0, *dummies):
+        output = F.conv2d(input, weight, bias, stride, padding)
+        ctx.stride = stride
+        ctx.padding = padding
+        ctx.save_for_backward(input, weight, bias, *dummies)
+        return output
+    
+    @staticmethod
+    def backward(ctx, grad_output):
+        input, weight, bias, *dummies = ctx.saved_tensors
+        stride = ctx.stride
+        padding = ctx.padding
+        grad_input = grad_weight = grad_bias = None
+        grad_weight = F.conv2d(input.permute(1,0,2,3), grad_output.permute(1,0,2,3), bias=None, stride=stride, padding=padding).permute(1,0,2,3)
+        if bias is not None:
+            grad_bias = grad_output.sum(dim=[0,2,3])
+        grad_input = torch.Tensor(input.size()).zero_().to(input.device)
+        grad_dummies = [grad_output.view(grad_output.size()[0],-1).clone() for dummy in dummies]
+        return tuple([grad_input, grad_weight, grad_bias, None, None, *grad_dummies])
+    
+    
 class feedback_reciever(torch.autograd.Function):
     @staticmethod
     def forward(ctx, input, weight_fb):
@@ -43,7 +66,7 @@ class feedback_reciever(torch.autograd.Function):
     def backward(ctx, grad_output, grad_dummy):
         input, weight_fb = ctx.saved_tensors
         grad_weight_fb = None
-        grad_input = torch.mm(grad_dummy, weight_fb).view(input.size()) # Batch_size, input
+        grad_input = torch.mm(grad_dummy.view(grad_dummy.size()[0],-1), weight_fb).view(input.size()) # Batch_size, input
         return grad_input, grad_weight_fb
         
 
@@ -61,7 +84,25 @@ class Linear_IFA(nn.Module):
     
     def forward(self, input, *dummies):
         return linear_ifa.apply(input, self.weight, self.bias, *dummies)
-        
+    
+
+class Conv2d_IFA(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, bias=True):
+        super(Conv2d_IFA, self).__init__()
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.kernel_size = kernel_size
+        self.padding = padding
+        self.stride = stride
+        self.weight = nn.Parameter(torch.Tensor(out_channels, in_channels, kernel_size, kernel_size))
+        if bias:
+            self.bias = nn.Parameter(torch.Tensor(out_channels).zero_())
+        else:
+            self.register_parameter('bias', None)
+        nn.init.kaiming_uniform_(self.weight)
+    
+    def forward(self, input, *dummies):
+        return conv2d_ifa.apply(input, self.weight, self.bias, self.stride, self.padding, *dummies)
 
 class Feedback_Reciever(nn.Module):
     def __init__(self, connect_features):

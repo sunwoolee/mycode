@@ -11,7 +11,7 @@ import time
 input_size = 784
 hidden_size = 500
 num_classes = 10
-num_epochs = 5
+num_epochs = 10
 batch_size = 100
 learning_rate = 0.001
 
@@ -40,16 +40,24 @@ class Net(nn.Module):
         super(Net, self).__init__()
         self.fc1 = nn.Linear(input_size, hidden_size) 
         self.fc2 = nn.Linear(hidden_size, hidden_size)
-        self.fc3 = Linear_IFA(hidden_size, num_classes)
-        self.fb1 = Feedback_Reciever(10)
-        self.fb2 = Feedback_Reciever(10)
+        self.fc3 = Linear_IFA(hidden_size, hidden_size)
+        self.fc4 = nn.Linear(hidden_size, hidden_size)
+        self.fc5 = Linear_IFA(hidden_size, num_classes)
+        self.fb1 = Feedback_Reciever(256)
+        self.fb2 = Feedback_Reciever(256)
+        self.fb3 = Feedback_Reciever(10)
+        self.fb4 = Feedback_Reciever(10)
     
     def forward(self, x):
         out = self.fc1(x)
-        out, dm1 = self.fb1(F.relu(out))
+        out, dm1 = self.fb1(F.tanh(out))
         out = self.fc2(out)
-        out, dm2 = self.fb2(F.relu(out))
-        out = F.log_softmax(self.fc3(out, dm1, dm2))
+        out, dm2 = self.fb2(F.tanh(out))
+        out = self.fc3(out, dm1, dm2)
+        out, dm3 = self.fb3(F.tanh(out))
+        out = self.fc4(F.tanh(out))
+        out, dm4 = self.fb4(F.tanh(out))
+        out = F.log_softmax(self.fc5(out, dm3, dm4))
         return out
     
 net = Net(input_size, 256, num_classes)
@@ -87,7 +95,7 @@ for images, labels in test_loader:
     total += labels.size(0)
     correct += (predicted.cpu() == labels).sum()
 
-print('Accuracy of the network on the 10000 test images: %d %%' % (100 * correct / total))
+print('Accuracy of the network on the 10000 test images: %d %%' % (100.0 * float(correct) / total))
 print('Total Time: %.2f'%(time.time()-t0))
 #%%
 # Save the Model
