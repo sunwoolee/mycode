@@ -41,11 +41,12 @@ class conv2d_ifa(torch.autograd.Function):
         stride = ctx.stride
         padding = ctx.padding
         grad_input = grad_weight = grad_bias = None
-        grad_weight = F.conv2d(input.permute(1,0,2,3), grad_output.permute(1,0,2,3), bias=None, stride=stride, padding=padding).permute(1,0,2,3)
+        grad_weight = nn.grad.conv2d_weight(input, weight.size(), grad_output, stride, padding)
+        #grad_weight = F.conv2d(input.permute(1,0,2,3), grad_output.permute(1,0,2,3), bias=None, stride=stride, padding=padding).permute(1,0,2,3)
         if bias is not None:
             grad_bias = grad_output.sum(dim=[0,2,3])
         grad_input = torch.Tensor(input.size()).zero_().to(input.device)
-        grad_dummies = [grad_output.view(grad_output.size()[0],-1).clone() for dummy in dummies]
+        grad_dummies = [grad_output.clone() for dummy in dummies]
         return tuple([grad_input, grad_weight, grad_bias, None, None, *grad_dummies])
     
     
@@ -90,7 +91,7 @@ class conv_feedback_reciever(torch.autograd.Function):
         input, weight_fb = ctx.saved_tensors
         stride, padding = ctx.stride, ctx.padding
         grad_weight_fb = None
-        grad_input = nn.grad.conv2d_input(input.size(), weight_fb, grad_output,
+        grad_input = nn.grad.conv2d_input(input.size(), weight_fb, grad_dummy,
                                           stride=stride, padding=padding)
         return grad_input, grad_weight_fb, None, None, None
 
@@ -129,6 +130,7 @@ class Conv2d_IFA(nn.Module):
     def forward(self, input, *dummies):
         return conv2d_ifa.apply(input, self.weight, self.bias, self.stride, self.padding, *dummies)
 
+
 class Feedback_Reciever(nn.Module):
     def __init__(self, connect_features):
         super(Feedback_Reciever, self).__init__()
@@ -155,7 +157,7 @@ class Conv_Feedback_Reciever(nn.Module):
         nn.init.kaiming_uniform_(self.weight_fb)
     
     def forward(self, input):
-        return conv_feedback_reciever.apply(input, self.weight_fb, self.fb_features_size, stride=self.stride, padding=self.padding)
+        return conv_feedback_reciever.apply(input, self.weight_fb, self.fb_features_size, self.stride, self.padding)
     
         
 
