@@ -70,6 +70,31 @@ class feedback_reciever(torch.autograd.Function):
         return grad_input, grad_weight_fb
         
 
+class conv_feedback_reciever(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, input, weight_fb, grad_output_size, stride=1, padding=0):
+        """
+        Dummy should be attached to the IFA layer for proper IFA error calculation
+        weight_fb : of shape (input, ifa_neurons)
+        grad_dummy: of shape (batch_size, ifa_neurons)
+        """
+        output = input.clone()
+        dummy = torch.Tensor(input.size()[0],*grad_output_size).zero_().to(input.device)
+        ctx.save_for_backward(input, weight_fb)
+        ctx.stride = stride
+        ctx.padding = padding
+        return output, dummy
+    
+    @staticmethod
+    def backward(ctx, grad_output, grad_dummy):
+        input, weight_fb = ctx.saved_tensors
+        stride, padding = ctx.stride, ctx.padding
+        grad_weight_fb = None
+        grad_input = nn.grad.conv2d_input(input.size(), weight_fb, grad_output,
+                                          stride=stride, padding=padding)
+        return grad_input, grad_weight_fb, None, None, None
+
+
 class Linear_IFA(nn.Module):
     def __init__(self, in_features, out_features, bias=True):
         super(Linear_IFA, self).__init__()
@@ -119,7 +144,22 @@ class Feedback_Reciever(nn.Module):
             nn.init.kaiming_uniform_(self.weight_fb)
         return feedback_reciever.apply(input, self.weight_fb)
         
+class Conv_Feedback_Reciever(nn.Module):
+    def __init__(self, in_channels, connect_channels, kernel_size, stride, padding, fb_features_size):
+        # For now, only support multi-layers with regular kernel sizes
+        super(Conv_Feedback_Reciever, self).__init__()
+        self.weight_fb = nn.Parameter(torch.Tensor(connect_channels, in_channels, kernel_size,kernel_size))
+        self.stride = stride
+        self.padding = padding
+        self.fb_features_size = fb_features_size
+        nn.init.kaiming_uniform_(self.weight_fb)
     
+    def forward(self, input):
+        return conv_feedback_reciever.apply(input, self.weight_fb, self.fb_features_size, stride=self.stride, padding=self.padding)
+    
+        
+
+
 class linear_fa(torch.autograd.Function):
     @staticmethod
     def forward(ctx, input, weight, bias, weight_fa):
