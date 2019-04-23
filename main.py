@@ -12,7 +12,7 @@ import torchvision.transforms as transforms
 
 import os
 import argparse
-from models import LeNet_FA, LeNet_DFA, BaseNet_FA, BaseNet_DFA, BaseNet_IFA
+from models import * # LeNet_FA, LeNet_DFA, BaseNet_FA, BaseNet_DFA, BaseNet_IFA
 from utils import progress_bar
 
 
@@ -63,7 +63,7 @@ print('==> Building model..')
 # net = ShuffleNetG2()
 # net = SENet18()
 # net = BaseNet_DFA()
-net = BaseNet_IFA()
+net = BaseNet_IFA_v3()
 net = net.to(device)
 if device == 'cuda':
     net = torch.nn.DataParallel(net)
