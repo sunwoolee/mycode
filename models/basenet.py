@@ -61,7 +61,7 @@ class BaseNet_DFA(nn.Module):
 
 
 class BaseNet_IFA(nn.Module):
-    def __init__(self):
+    def __init__(self, use_bn=False, activation=nn.ReLU()):
         super(BaseNet_IFA, self).__init__()
         fb_features_size = (256, 4, 4)
         self.conv1 = nn.Conv2d(3,96,3, padding=1, stride=1) # 96, 32, 32
@@ -87,7 +87,7 @@ class BaseNet_IFA(nn.Module):
         out, dm2 = self.conv2_fb(out)
         out = F.relu(self.bn3(self.conv3(out)))
         out, dm3 = self.conv3_fb(out)
-        out = F.relu(self.bn3(self.conv4(out, dm1, dm2, dm3)))
+        out = F.relu(self.bn4(self.conv4(out, dm1, dm2, dm3)))
         #out, dm3 = self.conv3_fb(out)
         out = out.view(out.size(0), -1)
         out = F.relu(self.fc1(out))
