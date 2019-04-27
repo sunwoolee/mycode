@@ -44,6 +44,25 @@ class MyBlock(nn.Module):
         out = F.relu(out)
         return out
 
+class Block_3(nn.Module):
+    def __init__(self, in_planes, planes, stride, fb_features_size):
+        super(MyBlock, self).__init__()
+        self.conv1 = nn.Conv2d(in_planes, planes, 3, stride, padding=1, bias=False)
+        self.conv2 = nn.Conv2d(planes, planes, 3, 1, padding=1, bias=False)
+        self.conv3 = Conv2d_IFA(planes, planes, 3, 1, padding=1, bias=False)
+        self.fb1 = Conv_Feedback_Reciever(planes, planes, 3, 1, padding=1, fb_features_size=fb_features_size)
+        self.fb2 = Conv_Feedback_Reciever(planes, planes, 3, 1, padding=1, fb_features_size=fb_features_size)
+        self.bn1 = nn.BatchNorm2d(planes)
+        self.bn2 = nn.BatchNorm2d(planes)
+        self.bn3 = nn.BatchNorm2d(planes)
+    
+    def forward(self, input):
+        # Dummies : List of 
+        out, dm1 = self.fb1(self.bn1(self.conv1(input)))
+        out, dm2 = self.fb2(self.bn2(self.conv2(out)))
+        out = self.bn3(self.conv3(out, dm1, dm2))
+        return out
+
 
 class MyNet(nn.Module):
     def __init__(self, num_blocks, num_classes=10):
@@ -51,6 +70,7 @@ class MyNet(nn.Module):
         self.in_planes = 64
         self.conv1 = nn.Conv2d(3, 64, 3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(64)
+        """
         self.layer1 = MyBlock(64, 64, num_blocks[0], stride=1, fb_features_size=(64,32,32))
         self.l1_fb = Conv_Feedback_Reciever(64, 128, 3, stride=2, padding=1, fb_features_size=(128,16,16))
         self.layer2 = MyBlock(64, 128, num_blocks[1], stride=2, fb_features_size=(128,16,16))
@@ -58,6 +78,11 @@ class MyNet(nn.Module):
         self.layer3 = MyBlock(128, 256, num_blocks[2], stride=2, fb_features_size=(256,8,8))
         self.l3_fb = Conv_Feedback_Reciever(256, 512, 3, stride=2, padding=1, fb_features_size=(512,4,4))
         self.layer4 = MyBlock(256, 512, num_blocks[3], stride=2, fb_features_size=(512,4,4))
+        """
+        self.layer1 = Block_3(64, 64, 1, (64,32,32))
+        self.layer2 = Block_3(64,128, 2, (128,16,16))
+        self.layer3 = Block_3(128,256,2, (256,8,8))
+        self.layer4 = Block_3(256,512,2, (512,4,4))
         self.linear = nn.Linear(512, num_classes)
     
     def forward(self, input):
