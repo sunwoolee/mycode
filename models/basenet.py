@@ -12,6 +12,9 @@ class BaseNet_FA(nn.Module):
         self.fc1 = Linear_FA(256*3*3, 2048)
         self.fc2 = nn.Linear(2048, 2048)
         self.fc3 = nn.Linear(2048, 10)
+        self.bn1 = nn.BatchNorm2d(96)
+        self.bn2 = nn.BatchNorm2d(128)
+        self.bn3 = nn.BatchNorm2d(256)
     
     def forward(self, x):
         out = F.tanh(self.conv1(x))

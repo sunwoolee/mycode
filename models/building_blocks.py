@@ -241,6 +241,8 @@ class Conv2d_FA(nn.Module):
     def forward(self, input):
         return conv2d_fa.apply(input, self.weight, self.bias, self.weight_fa, self.stride, self.padding)
 
+
+
 #%%
 """Sanity Check
 conv1_check = Conv2d_FA(3,4,5)
