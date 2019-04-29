@@ -213,10 +213,10 @@ class conv2d_fa(torch.autograd.Function):
         stride = ctx.stride
         padding = ctx.padding
         grad_input = grad_weight = grad_bias = grad_weight_fa = None
-        grad_weight = F.conv2d(input.permute(1,0,2,3), grad_output.permute(1,0,2,3), bias=None, stride=stride, padding=padding).permute(1,0,2,3)
+        grad_weight = nn.grad.conv2d_weight(input, weight.size(), grad_output, stride=stride, padding=padding)
         if bias is not None:
             grad_bias = grad_output.sum(dim=[0,2,3])
-        grad_input = F.conv_transpose2d(grad_output, weight_fa, bias=None, stride=stride, padding=padding)
+        grad_input = nn.grad.conv2d_input(input.size(), weight_fa, grad_output, stride=stride, padding=padding)
         return grad_input, grad_weight, grad_bias, grad_weight_fa, None, None
 
 
