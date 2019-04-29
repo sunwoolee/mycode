@@ -190,3 +190,33 @@ class BaseNet_IFA_v3(nn.Module):
         return out
 #
 #%%
+class BaseNet_FA_v2(nn.Module):
+    def __init__(self, use_bn=False, activation=nn.ReLU()):
+        super(BaseNet_FA_v2, self).__init__()
+        fb_features_size = (256, 4, 4)
+        self.conv1 = Conv2d_FA(3,96,3, padding=1, stride=1) # 96, 32, 32
+        self.bn1 = nn.BatchNorm2d(96)
+        self.conv2 = Conv2d_FA(96,128,3, padding=1, stride=2) # 96, 16, 16
+        self.bn2 = nn.BatchNorm2d(128)
+        self.conv3 = Conv2d_FA(128, 256, 3,padding=1, stride=2) # 128, 8, 8
+        self.bn3 = nn.BatchNorm2d(256)
+        self.conv4 = Conv2d_FA(256, 256, 3, stride=2, padding=1) # 256, 4, 4
+        self.bn4 = nn.BatchNorm2d(256)
+        
+        self.fc1 = Linear_FA(256*4*4, 2048)
+        self.bn5 = nn.BatchNorm1d(2048)
+        self.fc2 = Linear_FA(2048, 2048)
+        self.bn6 = nn.BatchNorm1d(2048)
+        self.fc3 = Linear_IFA(2048, 10)
+    
+    def forward(self, x):
+        out = F.relu(self.bn1(self.conv1(x)))
+        out = F.relu(self.bn2(self.conv2(out)))
+        out = F.relu(self.bn3(self.conv3(out)))
+        out = F.relu(self.bn4(self.conv4(out)))
+        #out, dm3 = self.conv3_fb(out)
+        out = out.view(out.size(0), -1)
+        out = F.relu(self.bn5(self.fc1(out)))
+        out = F.relu(self.bn6(self.fc2(out)))
+        out = self.fc3(out)
+        return out
