@@ -46,7 +46,7 @@ class MyBlock(nn.Module):
 
 class Block_3(nn.Module):
     def __init__(self, in_planes, planes, stride, fb_features_size):
-        super(MyBlock, self).__init__()
+        super(Block_3, self).__init__()
         self.conv1 = nn.Conv2d(in_planes, planes, 3, stride, padding=1, bias=False)
         self.conv2 = nn.Conv2d(planes, planes, 3, 1, padding=1, bias=False)
         self.conv3 = Conv2d_IFA(planes, planes, 3, 1, padding=1, bias=False)
