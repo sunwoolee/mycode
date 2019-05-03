@@ -67,7 +67,7 @@ print('==> Building model..')
 #<<<<<<< HEAD
 #net = MyNet([2,2,2,2])
 #=======
-net = BigNet()
+net = BigNet_DFA()
 #>>>>>>> c14be2779d31fdb8847d1a42988fb439d1da7f7e
 net = net.to(device)
 if device == 'cuda':

@@ -1,4 +1,4 @@
-from .lenet import LeNet_DFA, LeNet_FA
+from .lenet import *
 from .basenet import *
 from .densenet import *
 from .mynet import *
