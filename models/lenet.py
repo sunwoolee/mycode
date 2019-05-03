@@ -49,3 +49,43 @@ class LeNet_DFA(nn.Module):
         out, dm4 = self.fc2_fb(out)
         out = self.fc3(out, dm1, dm2, dm3, dm4)
         return out
+
+class BigNet(nn.Module):
+    def __init__(self):
+        super(BigNet, self).__init__()
+        self.conv1 = nn.Conv2d(3,6,9)
+        self.conv2 = nn.Conv2d(6,16,9)
+        self.conv3 = nn.Conv2d(16,32,9)
+        self.fc1 = nn.Linear(32*8*8, 1024)
+        self.fc2 = nn.Linear(1024, 256)
+        self.fc3 = nn.Linear(256, 10)
+    
+    def forward(self, x):
+        out = F.relu(self.conv1(x))
+        out = F.relu(self.conv2(out))
+        out = F.relu(self.conv3(out))
+        out = out.view(out.size(0), -1)
+        out = F.relu(self.fc1(out))
+        out = F.relu(self.fc2(out))
+        out = self.fc3(out)
+        return out
+
+class BigNet_DFA(nn.Module):
+    def __init__(self):
+        super(BigNet_DFA, self).__init__()
+        self.conv1 = nn.Conv2d(3,6,9)
+        self.conv2 = nn.Conv2d(6,16,9)
+        self.conv3 = nn.Conv2d(16,32,9)
+        self.fc1 = nn.Linear(32*8*8, 1024)
+        self.fc2 = nn.Linear(1024, 256)
+        self.fc3 = nn.Linear(256, 10)
+    
+    def forward(self, x):
+        out = F.relu(self.conv1(x))
+        out = F.relu(self.conv2(out))
+        out = F.relu(self.conv3(out))
+        out = out.view(out.size(0), -1)
+        out = F.relu(self.fc1(out))
+        out = F.relu(self.fc2(out))
+        out = self.fc3(out)
+        return out

@@ -13,7 +13,7 @@ import torchvision.transforms as transforms
 import os
 import argparse
 from models import * # LeNet_FA, LeNet_DFA, BaseNet_FA, BaseNet_DFA, BaseNet_IFA
-from utils import progress_bar
+#from utils import progress_bar
 
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
@@ -22,8 +22,8 @@ parser.add_argument('--resume', '-r', action='store_true', help='resume from che
 parser.add_argument('--gpu', default=0, type=int, help='Which GPU to use, 0~7')
 args = parser.parse_args()
 
-#device = 'cuda' if torch.cuda.is_available() else 'cpu'
-device = args.gpu
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+# device = args.gpu
 best_acc = 0  # best test accuracy
 start_epoch = 0  # start from epoch 0 or last checkpoint epoch
 
@@ -63,7 +63,8 @@ print('==> Building model..')
 # net = ShuffleNetG2()
 # net = SENet18()
 # net = BaseNet_DFA()
-net = BaseNet_IFA_v3()
+# net = BaseNet_IFA_v3()
+net = BigNet()
 net = net.to(device)
 if device == 'cuda':
     net = torch.nn.DataParallel(net)
@@ -100,9 +101,11 @@ def train(epoch):
         _, predicted = outputs.max(1)
         total += targets.size(0)
         correct += predicted.eq(targets).sum().item()
-
-        progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
+        if (batch_idx+1)%100==0:
+            print('Loss: %.3f | Acc: %.3f%% (%d/%d)'
             % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
+        #progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
+        #    % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
 
 def test(epoch):
     global best_acc
@@ -121,8 +124,10 @@ def test(epoch):
             total += targets.size(0)
             correct += predicted.eq(targets).sum().item()
 
-            progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
+        print( 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
                 % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
+            #progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
+            #    % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
 
     # Save checkpoint.
     acc = 100.*correct/total
