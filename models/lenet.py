@@ -83,14 +83,18 @@ class BigNet_DFA(nn.Module):
         self.fc1 = nn.Linear(64*8*8, 1024)
         self.fc2 = nn.Linear(1024, 256)
         self.fc3 = nn.Linear(256, 10)
+        self.bn1 = nn.BatchNorm2d(6)
+        self.bn2 = nn.BatchNorm2d(16)
+        self.bn3 = nn.BatchNorm2d(32)
+        self.bn4 = nn.BatchNorm2d(64)
         self.fb1 = Conv_Feedback_Reciever(6, 64, 19, 1, 0, (64,8,8))
         self.fb2 = Conv_Feedback_Reciever(16, 64, 13, 1, 0, (64,8,8))
         self.fb3 = Conv_Feedback_Reciever(32, 64, 7, 1, 0, (64,8,8))
     def forward(self, x):
-        out, dm1 = self.fb1(F.relu(self.conv1(x)))
-        out, dm2 = self.fb2(F.relu(self.conv2(out)))
-        out, dm3 = self.fb3(F.relu(self.conv3(out)))
-        out = F.relu(self.conv4(out, dm1, dm2, dm3))
+        out, dm1 = self.fb1(self.bn1(F.relu(self.conv1(x))))
+        out, dm2 = self.fb2(self.bn2(F.relu(self.conv2(out))))
+        out, dm3 = self.fb3(self.bn3(F.relu(self.conv3(out))))
+        out = self.bn4(F.relu(self.conv4(out, dm1, dm2, dm3)))
         out = out.view(out.size(0), -1)
         out = F.relu(self.fc1(out))
         out = F.relu(self.fc2(out))
@@ -102,10 +106,19 @@ class BigNet_DFA(nn.Module):
         T2 = F.conv2d(self.conv3.weight.flip(2,3).permute(1,0,2,3), T3, padding=6).flip(2,3).permute(1,0,2,3)
         T1 = F.conv2d(self.conv2.weight.flip(2,3).permute(1,0,2,3), T2, padding=12).flip(2,3).permute(1,0,2,3)
 
-        deg3 = 180 * math.acos(F.cosine_similarity(T3.view(1,-1), self.fb3.weight_fb.view(1,-1))) / math.pi
-        deg2 = 180 * math.acos(F.cosine_similarity(T2.view(1,-1), self.fb2.weight_fb.view(1,-1))) / math.pi
-        deg1 = 180 * math.acos(F.cosine_similarity(T1.view(1,-1), self.fb1.weight_fb.view(1,-1))) / math.pi
+        deg3 = 180 * math.acos(F.cosine_similarity(T3.contiguous().view(1,-1), self.fb3.weight_fb.view(1,-1))) / math.pi
+        deg2 = 180 * math.acos(F.cosine_similarity(T2.contiguous().view(1,-1), self.fb2.weight_fb.view(1,-1))) / math.pi
+        deg1 = 180 * math.acos(F.cosine_similarity(T1.contiguous().view(1,-1), self.fb1.weight_fb.view(1,-1))) / math.pi
         return deg1, deg2, deg3 
+
+    def sign_symmetry(self):
+        T3 = self.conv4.weight.clone()
+        T2 = F.conv2d(self.conv3.weight.flip(2,3).permute(1,0,2,3), T3, padding=6).flip(2,3).permute(1,0,2,3)
+        T1 = F.conv2d(self.conv2.weight.flip(2,3).permute(1,0,2,3), T2, padding=12).flip(2,3).permute(1,0,2,3)
+
+        self.fb1.weight_fb.data = T1.contiguous().sign()
+        self.fb2.weight_fb.data = T2.contiguous().sign()
+        self.fb3.weight_fb.data = T3.contiguous().sign()
 
 
 

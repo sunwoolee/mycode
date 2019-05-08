@@ -220,3 +220,9 @@ class BaseNet_FA_v2(nn.Module):
         out = F.relu(self.bn6(self.fc2(out)))
         out = self.fc3(out)
         return out
+
+    def sign_sym(self):
+        self.conv4.weight_fa.data = self.conv4.weight_fa.abs() * self.conv4.weight.sign().float()
+        self.conv3.weight_fa.data = self.conv3.weight_fa.abs() * self.conv3.weight.sign().float()
+        self.conv2.weight_fa.data = self.conv2.weight_fa.abs() * self.conv2.weight.sign().float()
+        self.conv1.weight_fa.data = self.conv1.weight_fa.abs() * self.conv1.weight.sign().float()

@@ -9,6 +9,7 @@ import torch.backends.cudnn as cudnn
 
 import torchvision
 import torchvision.transforms as transforms
+import numpy as np
 
 import os
 import argparse
@@ -42,7 +43,7 @@ transform_test = transforms.Compose([
 ])
 
 trainset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform_train)
-trainloader = torch.utils.data.DataLoader(trainset, batch_size=128, shuffle=True, num_workers=2)
+trainloader = torch.utils.data.DataLoader(trainset, batch_size=100, shuffle=True, num_workers=2)
 
 testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform_test)
 testloader = torch.utils.data.DataLoader(testset, batch_size=100, shuffle=False, num_workers=2)
@@ -85,18 +86,21 @@ if args.resume:
 
 criterion = nn.CrossEntropyLoss()
 # optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
-optimizer = optim.RMSprop(net.parameters(), lr=args.lr, momentum=0.9)
+optimizer = optim.Adam(net.parameters(), lr=args.lr)
 # Training
-def train(epoch):
+def train(epoch, degrees):
     print('\nEpoch: %d' % epoch)
     net.train()
     train_loss = 0
     correct = 0
     total = 0
+    #net.sign_symmetry()
     for batch_idx, (inputs, targets) in enumerate(trainloader):
         inputs, targets = inputs.to(device), targets.to(device)
         optimizer.zero_grad()
         outputs = net(inputs)
+#        net.sign_symmetry()
+        degrees[500*epoch + batch_idx] = net.eval_alignment()
         loss = criterion(outputs, targets)
         loss.backward()
         optimizer.step()
@@ -110,7 +114,9 @@ def train(epoch):
         #    % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
         progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
             % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
-
+    print(net.eval_alignment())
+    #net.sign_symmetry()
+    return degrees
 def test(epoch):
     global best_acc
     net.eval()
@@ -147,8 +153,10 @@ def test(epoch):
         torch.save(state, './checkpoint/ckpt.t7')
         best_acc = acc
 
-
+degrees = np.zeros([500*200, 3])
 for epoch in range(start_epoch, start_epoch+200):
-    train(epoch)
+#    degrees = np.zeros([500*200, 3])    
+    degrees = train(epoch, degrees)
     test(epoch)
+    np.save('./data/degrees_CIFAR10.npy',degrees)
 #%%

@@ -67,8 +67,9 @@ print('==> Building model..')
 #<<<<<<< HEAD
 #net = MyNet([2,2,2,2])
 #=======
-net = BigNet()
+#net = BigNet()
 #>>>>>>> c14be2779d31fdb8847d1a42988fb439d1da7f7e
+net = BaseNet_FA_v2()
 net = net.to(device)
 if device == 'cuda':
     net = torch.nn.DataParallel(net)
@@ -93,6 +94,7 @@ def train(epoch):
     train_loss = 0
     correct = 0
     total = 0
+    net.sign_sym()
     for batch_idx, (inputs, targets) in enumerate(trainloader):
         inputs, targets = inputs.to(device), targets.to(device)
         optimizer.zero_grad()
