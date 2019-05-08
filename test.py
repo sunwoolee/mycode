@@ -11,18 +11,23 @@ import torch.nn.functional as F
 
 # a, b, k, k : c, b, k, k
 # out, in, k, k
-w1 = torch.randn(3,2,4,4)
-w2 = torch.randn(5,3,7,7)
+w1 = torch.randn(2,1,3,3)
+w2 = torch.randn(5,2,5,5)
 
-w_comb = F.conv2d(w1.flip(2,3).permute(1,0,2,3), w2, padding=6).flip(2,3).permute(1,0,2,3)
-w_tr = F.conv_transpose2d(w1.permute(1,0,2,3), w2.permute(1,0,2,3), stride=2).permute(1,0,2,3)
-input = torch.randn(1,2,32,32)
+# Add for strided cases
+s1 = 2
+s2 = 1
+p1 = 3
+p2 = 1
+#w_comb = F.conv2d(w1.flip(2,3).permute(1,0,2,3), w2, padding=4+p2, dilation=s1).flip(2,3).permute(1,0,2,3)
+w_tr = F.conv_transpose2d(w1.permute(1,0,2,3), w2.permute(1,0,2,3), dilation=s1).permute(1,0,2,3)
+input = torch.randn(1,1,32,32)
 
-res = F.conv2d(F.conv2d(input, w1), w2)
-res_comb = F.conv2d(input, w_comb)
-res_tr = F.conv2d(input, w_tr, stride=2)
-print((res - res_comb).abs().sum())
-#print((res - res_tr).abs().sum())
+res = F.conv2d(F.conv2d(input, w1, stride=s1, padding=p1), w2, stride=s2, padding=p2)
+#res_comb = F.conv2d(input, w_comb, stride=s1*s2, padding=p1)
+res_tr = F.conv2d(input, w_tr, stride=s1 * s2, padding=p1+s1*p2)
+#print((res - res_comb).abs().sum())
+print((res - res_tr).abs().sum())
 #%%
 import matplotlib.pyplot as plt
 from mpl_toolkits.axisartist.axislines import SubplotZero
