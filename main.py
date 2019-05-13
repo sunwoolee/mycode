@@ -69,7 +69,7 @@ print('==> Building model..')
 #=======
 #net = BigNet()
 #>>>>>>> c14be2779d31fdb8847d1a42988fb439d1da7f7e
-net = BaseNet_IFA_v4()
+net = BaseNet_IFA_v5()
 net = net.to(device)
 if device == 'cuda':
     net = torch.nn.DataParallel(net)

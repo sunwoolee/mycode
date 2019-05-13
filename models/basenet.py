@@ -326,9 +326,13 @@ class BaseNet_IFA_v5(nn.Module):
         T3 = self.conv4.weight.clone()
         T2, s_t2, p_t2 = merge_weights(self.conv3.weight, T3, s1=self.conv3.stride[0], s2=self.conv4.stride, p1=self.conv3.padding[0], p2=self.conv4.padding) # 256, 128, 7, 7
         T1 , s_t1, p_t1 = merge_weights(self.conv2.weight, T2, s1=self.conv2.stride[0], s2=s_t2, p1=self.conv2.padding[0], p2=p_t2) # 256, 96, 15, 15
+        
         deg3 = 180 * math.acos(F.cosine_similarity(T3.view(1,-1),self.conv3_fb.weight_fb.view(1,-1))) / math.pi
         deg2 = 180 * math.acos(F.cosine_similarity(T2.view(1,-1),self.conv2_fb.weight_fb.view(1,-1))) / math.pi
         deg1 = 180 * math.acos(F.cosine_similarity(T1.view(1,-1),self.conv1_fb.weight_fb.view(1,-1))) / math.pi
+        self.conv3_fb.weight_fb.data = T3
+        self.conv2_fb.weight_fb.data = T2
+        self.conv1_fb.weight_fb.data = T1 
         return deg3, deg2, deg1
 
         

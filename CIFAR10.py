@@ -64,11 +64,11 @@ print('==> Building model..')
 # net = ShuffleNetG2()
 # net = SENet18()
 # net = BaseNet_DFA()
-# net = BaseNet_IFA_v3()
+net = BaseNet_IFA_v5()
 #<<<<<<< HEAD
 #net = MyNet([2,2,2,2])
 #=======
-net = BigNet_DFA()
+# net = BigNet_DFA()
 #>>>>>>> c14be2779d31fdb8847d1a42988fb439d1da7f7e
 net = net.to(device)
 if device == 'cuda':
@@ -86,7 +86,7 @@ if args.resume:
 
 criterion = nn.CrossEntropyLoss()
 # optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
-optimizer = optim.Adam(net.parameters(), lr=args.lr)
+optimizer = optim.RMSprop(net.parameters(), lr=args.lr, momentum=0.9)
 # Training
 def train(epoch, degrees):
     print('\nEpoch: %d' % epoch)
@@ -100,11 +100,11 @@ def train(epoch, degrees):
         optimizer.zero_grad()
         outputs = net(inputs)
 #        net.sign_symmetry()
-        degrees[500*epoch + batch_idx] = net.eval_alignment()
+        
         loss = criterion(outputs, targets)
         loss.backward()
         optimizer.step()
-
+        degrees[500*epoch + batch_idx] = net.eval_alignment()
         train_loss += loss.item()
         _, predicted = outputs.max(1)
         total += targets.size(0)
