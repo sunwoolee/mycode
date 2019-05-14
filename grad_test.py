@@ -136,7 +136,7 @@ def train(epoch):
 
         loss = criterion(outputs, targets)
         loss.backward()
-        optimizer.step()
+        
 #%%
         if batch_idx % 100 == 99:
             #%%
