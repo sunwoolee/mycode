@@ -348,13 +348,13 @@ class BaseNet_GradientTest_BP(nn.Module):
         self.bn3 = nn.BatchNorm2d(256)
         self.conv4 = nn.Conv2d(256, 256, 3, padding=1, stride=2) # 256, 4, 4
         self.bn4 = nn.BatchNorm2d(256)
-        self.conv4_fb = Feedback_Reciever(2048)
+ 
         
         self.fc1 = nn.Linear(256*4*4, 2048)
         self.bn5 = nn.BatchNorm1d(2048)
         self.fc2 = nn.Linear(2048, 2048)
         self.bn6 = nn.BatchNorm1d(2048)
-        self.fc3 = Linear_IFA(2048, 10)
+        self.fc3 = nn.Linear(2048, 10)
 
     def copy(self, other):
         self.conv1.weight.data = other.conv1.weight.data
@@ -384,21 +384,21 @@ class BaseNet_GradientTest_FA(nn.Module):
         fb_features_size = (256, 4, 4)
         self.conv1 = nn.Conv2d(3,96,3, padding=1, stride=1) # 96, 32, 32
         self.bn1 = nn.BatchNorm2d(96)
-        self.conv1_fb = Conv_Feedback_Reciever(96, 128, kernel_size=3, stride=1, padding=1, fb_features_size=(128, 16, 16))
+        self.conv1_fb = Conv_Feedback_Reciever(96, 128, kernel_size=3, stride=2, padding=1, fb_features_size=(128, 16, 16))
         self.conv2 = Conv2d_IFA(96,128,3, padding=1, stride=2) # 128, 16, 16
         self.bn2 = nn.BatchNorm2d(128)
         self.conv2_fb = Conv_Feedback_Reciever(128, 256, kernel_size=3, stride=2, padding=1, fb_features_size=(256, 8, 8))
-        self.conv3 = nn.Conv2d(128, 256, 3,padding=1, stride=2) # 256, 8, 8
+        self.conv3 = Conv2d_IFA(128, 256, 3,padding=1, stride=2) # 256, 8, 8
         self.bn3 = nn.BatchNorm2d(256)
         self.conv3_fb = Conv_Feedback_Reciever(256, 256, kernel_size=3, stride=2, padding=1, fb_features_size=fb_features_size)
         self.conv4 = Conv2d_IFA(256, 256, 3, padding=1, stride=2) # 256, 4, 4
         self.bn4 = nn.BatchNorm2d(256)
         self.conv4_fb = Feedback_Reciever(2048)
         
-        self.fc1 = nn.Linear(256*4*4, 2048)
+        self.fc1 = Linear_IFA(256*4*4, 2048)
         self.bn5 = nn.BatchNorm1d(2048)
         self.fc1_fb = Feedback_Reciever(2048)
-        self.fc2 = nn.Linear(2048, 2048)
+        self.fc2 = Linear_IFA(2048, 2048)
         self.bn6 = nn.BatchNorm1d(2048)
         self.fc2_fb = Feedback_Reciever(10)
         self.fc3 = Linear_IFA(2048, 10)

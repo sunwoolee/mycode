@@ -105,7 +105,7 @@ class Linear_IFA(nn.Module):
             self.bias = nn.Parameter(torch.Tensor(out_features).zero_())
         else:
             self.register_parameter('bias', None)
-        nn.init.kaiming_uniform_(self.weight)
+        nn.init.normal_(self.weight, std=math.sqrt(1./in_features))
     
     def forward(self, input, *dummies):
         return linear_ifa.apply(input, self.weight, self.bias, *dummies)
@@ -124,7 +124,7 @@ class Conv2d_IFA(nn.Module):
             self.bias = nn.Parameter(torch.Tensor(out_channels).zero_())
         else:
             self.register_parameter('bias', None)
-        nn.init.kaiming_uniform_(self.weight)
+        nn.init.normal_(self.weight, std=1./math.sqrt(in_channels * kernel_size * kernel_size))
     
     def forward(self, input, *dummies):
         return conv2d_ifa.apply(input, self.weight, self.bias, self.stride, self.padding, *dummies)
@@ -142,7 +142,7 @@ class Feedback_Reciever(nn.Module):
     def forward(self, input):
         if self.weight_fb is None:
             self.weight_fb = nn.Parameter(torch.Tensor(self.connect_features, *input.size()[1:]).view(self.connect_features, -1)).to(input.device)
-            nn.init.kaiming_uniform_(self.weight_fb)
+            nn.init.normal_(self.weight_fb, std = math.sqrt(1./self.connect_features))
         return feedback_reciever.apply(input, self.weight_fb)
         
 class Conv_Feedback_Reciever(nn.Module):
@@ -153,7 +153,7 @@ class Conv_Feedback_Reciever(nn.Module):
         self.stride = stride
         self.padding = padding
         self.fb_features_size = fb_features_size
-        nn.init.kaiming_uniform_(self.weight_fb)
+        nn.init.normal_(self.weight_fb, std = math.sqrt(1./connect_channels * kernel_size * kernel_size))
     
     def forward(self, input):
         return conv_feedback_reciever.apply(input, self.weight_fb, self.fb_features_size, self.stride, self.padding)

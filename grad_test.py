@@ -15,7 +15,7 @@ import numpy as np
 import os
 import argparse
 from models import * # LeNet_FA, LeNet_DFA, BaseNet_FA, BaseNet_DFA, BaseNet_IFA
-from utils import progress_bar
+#from utils import progress_bar
 
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
@@ -77,7 +77,7 @@ net_ifa = BaseNet_GradientTest_IFA()
 net_bp = net_bp.to(device)
 net_fa = net_fa.to(device)
 net_ifa = net_ifa.to(device)
-
+print('Done')
 if args.resume:
     # Load checkpoint.
     print('==> Resuming from checkpoint..')
@@ -100,11 +100,12 @@ def grad_compare(net1, net2):
     fc2_grad_ratio = (net2.fc2.weight.grad.abs() / net1.fc2.weight.grad.abs()).mean()
     fc3_grad_ratio = (net2.fc3.weight.grad.abs() / net1.fc3.weight.grad.abs()).mean()
     return conv1_grad_ratio, conv2_grad_ratio, conv3_grad_ratio, conv4_grad_ratio, fc1_grad_ratio, fc2_grad_ratio, fc3_grad_ratio
-    
+    #%%
 
 # Training
 def train(epoch):
     print('\nEpoch: %d' % epoch)
+    #%%
     net_bp.train()
     net_fa.train()
     net_ifa.train()
@@ -113,26 +114,29 @@ def train(epoch):
     total = 0
     grad_ratios_fa = np.zeros([5,7])
     grad_ratios_ifa = np.zeros([5,7])
-
+#%%
     for batch_idx, (inputs, targets) in enumerate(trainloader):
+    #%%
         inputs, targets = inputs.to(device), targets.to(device)
         optimizer.zero_grad()
 
         outputs = net_bp(inputs)
-        outputs_fa = net_fa(inputs)
-        outputs_ifa = net_ifa(inputs)
+
+
         loss = criterion(outputs, targets)
         loss.backward()
-
+#%%
         if batch_idx % 100 == 99:
             net_fa.copy(net_bp)
             net_ifa.copy(net_bp)
+            outputs_fa = net_fa(inputs)
+            outputs_ifa = net_ifa(inputs)
             loss_fa = criterion(outputs_fa, targets)
             loss_ifa = criterion(outputs_ifa, targets)
             loss_fa.backward()
             loss_ifa.backward()
-            grad_ratios_fa[(batch_idx+1)//100] = grad_compare(net_bp, net_fa)
-            grad_ratios_ifa[(batch_idx+1)//100] = grad_compare(net_bp, net_ifa)
+            grad_ratios_fa[(batch_idx+1)//100 - 1] = grad_compare(net_bp, net_fa)
+            grad_ratios_ifa[(batch_idx+1)//100 - 1] = grad_compare(net_bp, net_ifa)
             net_bp.zero_grad()
             net_fa.zero_grad()
 
@@ -148,8 +152,8 @@ def train(epoch):
         #if (batch_idx+1)%100==0:
         #    print('Loss: %.3f | Acc: %.3f%% (%d/%d)'
         #    % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
-        progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-            % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
+        #progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
+         #   % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
     return grad_ratios_fa, grad_ratios_ifa
 
 def test(epoch):
@@ -171,8 +175,8 @@ def test(epoch):
 
     #    print( 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
            #     % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
-            progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-                % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
+           # progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
+             #   % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
 
     # Save checkpoint.
     acc = 100.*correct/total
@@ -188,7 +192,7 @@ def test(epoch):
         torch.save(state, './checkpoint/ckpt.t7')
         best_acc = acc
 
-
+#%%
 for epoch in range(start_epoch, start_epoch+200):
     grad_ratios_fa, grad_ratios_ifa = train(epoch)
     print('FA gradient ratios: {0:.3f} {1:.3f} {2:.3f} {3:.3f} {4:.3f} {5:.3f} {6:.3f}'.format(*grad_ratios_fa.mean(0)))
