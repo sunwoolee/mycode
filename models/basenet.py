@@ -331,6 +331,156 @@ class BaseNet_IFA_v5(nn.Module):
         deg1 = 180 * math.acos(F.cosine_similarity(T1.view(1,-1),self.conv1_fb.weight_fb.view(1,-1))) / math.pi
         return deg3, deg2, deg1
 
+
+class BaseNet_GradientTest_BP(nn.Module):
+    def __init__(self):
+        super(BaseNet_GradientTest_BP, self).__init__()
+        fb_features_size = (256, 4, 4)
+        self.conv1 = nn.Conv2d(3,96,3, padding=1, stride=1) # 96, 32, 32
+        self.bn1 = nn.BatchNorm2d(96)
+        self.conv2 = nn.Conv2d(96,128,3, padding=1, stride=2) # 128, 16, 16
+        self.bn2 = nn.BatchNorm2d(128)
+        self.conv3 = nn.Conv2d(128, 256, 3,padding=1, stride=2) # 256, 8, 8
+        self.bn3 = nn.BatchNorm2d(256)
+        self.conv4 = nn.Conv2d(256, 256, 3, padding=1, stride=2) # 256, 4, 4
+        self.bn4 = nn.BatchNorm2d(256)
+        self.conv4_fb = Feedback_Reciever(2048)
+        
+        self.fc1 = nn.Linear(256*4*4, 2048)
+        self.bn5 = nn.BatchNorm1d(2048)
+        self.fc2 = nn.Linear(2048, 2048)
+        self.bn6 = nn.BatchNorm1d(2048)
+        self.fc3 = Linear_IFA(2048, 10)
+
+    def copy(self, other):
+        self.conv1.weight.data = other.conv1.weight.data
+        self.conv2.weight.data = other.conv2.weight.data
+        self.conv3.weight.data = other.conv3.weight.data
+        self.conv4.weight.data = other.conv4.weight.data
+        self.fc1.weight.data = other.fc1.weight.data
+        self.fc2.weight.data = other.fc2.weight.data
+        self.fc3.weight.data = other.fc3.weight.data
+    
+    def forward(self, x):
+        out = F.relu(self.bn1(self.conv1(x)))
+        out = F.relu(self.bn2(self.conv2(out)))
+        out = F.relu(self.bn3(self.conv3(out)))
+        out = F.relu(self.bn4(self.conv4(out)))
+        #out, dm3 = self.conv3_fb(out)
+        out = out.view(out.size(0), -1)
+        out = F.relu(self.bn5(self.fc1(out)))
+        out = F.relu(self.bn6(self.fc2(out)))
+        out = self.fc3(out)
+        return out
+
+
+class BaseNet_GradientTest_FA(nn.Module):
+    def __init__(self):
+        super(BaseNet_GradientTest_FA, self).__init__()
+        fb_features_size = (256, 4, 4)
+        self.conv1 = nn.Conv2d(3,96,3, padding=1, stride=1) # 96, 32, 32
+        self.bn1 = nn.BatchNorm2d(96)
+        self.conv1_fb = Conv_Feedback_Reciever(96, 128, kernel_size=3, stride=1, padding=1, fb_features_size=(128, 16, 16))
+        self.conv2 = Conv2d_IFA(96,128,3, padding=1, stride=2) # 128, 16, 16
+        self.bn2 = nn.BatchNorm2d(128)
+        self.conv2_fb = Conv_Feedback_Reciever(128, 256, kernel_size=3, stride=2, padding=1, fb_features_size=(256, 8, 8))
+        self.conv3 = nn.Conv2d(128, 256, 3,padding=1, stride=2) # 256, 8, 8
+        self.bn3 = nn.BatchNorm2d(256)
+        self.conv3_fb = Conv_Feedback_Reciever(256, 256, kernel_size=3, stride=2, padding=1, fb_features_size=fb_features_size)
+        self.conv4 = Conv2d_IFA(256, 256, 3, padding=1, stride=2) # 256, 4, 4
+        self.bn4 = nn.BatchNorm2d(256)
+        self.conv4_fb = Feedback_Reciever(2048)
+        
+        self.fc1 = nn.Linear(256*4*4, 2048)
+        self.bn5 = nn.BatchNorm1d(2048)
+        self.fc1_fb = Feedback_Reciever(2048)
+        self.fc2 = nn.Linear(2048, 2048)
+        self.bn6 = nn.BatchNorm1d(2048)
+        self.fc2_fb = Feedback_Reciever(10)
+        self.fc3 = Linear_IFA(2048, 10)
+
+    def copy(self, other):
+        self.conv1.weight.data = other.conv1.weight.data
+        self.conv2.weight.data = other.conv2.weight.data
+        self.conv3.weight.data = other.conv3.weight.data
+        self.conv4.weight.data = other.conv4.weight.data
+        self.fc1.weight.data = other.fc1.weight.data
+        self.fc2.weight.data = other.fc2.weight.data
+        self.fc3.weight.data = other.fc3.weight.data
+    
+    def forward(self, x):
+        out = F.relu(self.bn1(self.conv1(x)))
+        out, dm1 = self.conv1_fb(out)
+        out = F.relu(self.bn2(self.conv2(out, dm1)))
+        out, dm2 = self.conv2_fb(out)
+        out = F.relu(self.bn3(self.conv3(out,dm2)))
+        out, dm3 = self.conv3_fb(out)
+        out = F.relu(self.bn4(self.conv4(out, dm3)))
+        #out, dm3 = self.conv3_fb(out)
+        out = out.view(out.size(0), -1)
+        out, dm4 = self.conv4_fb(out)
+        out = F.relu(self.bn5(self.fc1(out, dm4)))
+        out, dm5 = self.fc1_fb(out)
+        out = F.relu(self.bn6(self.fc2(out, dm5)))
+        out, dm6 = self.fc2_fb(out)
+        out = self.fc3(out, dm6)
+        return out
+
+
+class BaseNet_GradientTest_IFA(nn.Module):
+    def __init__(self):
+        super(BaseNet_GradientTest_IFA, self).__init__()
+
+        fb_features_size = (256, 4, 4)
+        self.conv1 = nn.Conv2d(3,96,3, padding=1, stride=1) # 96, 32, 32
+        self.bn1 = nn.BatchNorm2d(96)
+        self.conv1_fb = Conv_Feedback_Reciever(96, 256, kernel_size=15, stride=8, padding=7, fb_features_size=fb_features_size)
+        self.conv2 = nn.Conv2d(96,128,3, padding=1, stride=2) # 128, 16, 16
+        self.bn2 = nn.BatchNorm2d(128)
+        self.conv2_fb = Conv_Feedback_Reciever(128, 256, kernel_size=7, stride=4, padding=3, fb_features_size=fb_features_size)
+        self.conv3 = nn.Conv2d(128, 256, 3,padding=1, stride=2) # 256, 8, 8
+        self.bn3 = nn.BatchNorm2d(256)
+        self.conv3_fb = Conv_Feedback_Reciever(256, 256, kernel_size=3, stride=2, padding=1, fb_features_size=fb_features_size)
+        self.conv4 = Conv2d_IFA(256, 256, 3, padding=1, stride=2) # 256, 4, 4
+        self.bn4 = nn.BatchNorm2d(256)
+        self.conv4_fb = Feedback_Reciever(10)
+        
+        self.fc1 = nn.Linear(256*4*4, 2048)
+        self.bn5 = nn.BatchNorm1d(2048)
+        self.fc1_fb = Feedback_Reciever(10)
+        self.fc2 = nn.Linear(2048, 2048)
+        self.bn6 = nn.BatchNorm1d(2048)
+        self.fc2_fb = Feedback_Reciever(10)
+        self.fc3 = Linear_IFA(2048, 10)
+
+    def copy(self, other):
+        self.conv1.weight.data = other.conv1.weight.data
+        self.conv2.weight.data = other.conv2.weight.data
+        self.conv3.weight.data = other.conv3.weight.data
+        self.conv4.weight.data = other.conv4.weight.data
+        self.fc1.weight.data = other.fc1.weight.data
+        self.fc2.weight.data = other.fc2.weight.data
+        self.fc3.weight.data = other.fc3.weight.data
+    
+    def forward(self, x):
+        out = F.relu(self.bn1(self.conv1(x)))
+        out, dm1 = self.conv1_fb(out)
+        out = F.relu(self.bn2(self.conv2(out)))
+        out, dm2 = self.conv2_fb(out)
+        out = F.relu(self.bn3(self.conv3(out)))
+        out, dm3 = self.conv3_fb(out)
+        out = F.relu(self.bn4(self.conv4(out, dm1, dm2, dm3)))
+        #out, dm3 = self.conv3_fb(out)
+        out = out.view(out.size(0), -1)
+        out, dm4 = self.conv4_fb(out)
+        out = F.relu(self.bn5(self.fc1(out)))
+        out, dm5 = self.fc1_fb(out)
+        out = F.relu(self.bn6(self.fc2(out)))
+        out, dm6 = self.fc2_fb(out)
+        out = self.fc3(out, dm4,dm5, dm6)
+        return out
+        
+
         
 
 #

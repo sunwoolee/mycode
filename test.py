@@ -12,13 +12,14 @@ import torch.nn.functional as F
 # a, b, k, k : c, b, k, k
 # out, in, k, k
 w1 = torch.randn(2,1,3,3)
-w2 = torch.randn(5,2,3,3)
+w2 = torch.randn(5,2,7,7)
 
 # Add for strided cases
 s1 = 2
-s2 = 2
-p1 = 3
-p2 = 1#w_comb = F.conv2d(w1.flip(2,3).permute(1,0,2,3), w2, padding=4+p2, dilation=s1).flip(2,3).permute(1,0,2,3)
+s2 = 4
+p1 = 1
+p2 = 3 
+#w_comb = F.conv2d(w1.flip(2,3).permute(1,0,2,3), w2, padding=4+p2, dilation=s1).flip(2,3).permute(1,0,2,3)
 w_tr = F.conv_transpose2d(w1.permute(1,0,2,3), w2.permute(1,0,2,3), dilation=s1).permute(1,0,2,3)
 input = torch.randn(1,1,32,32)
 
