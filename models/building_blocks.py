@@ -153,7 +153,7 @@ class Conv_Feedback_Reciever(nn.Module):
         self.stride = stride
         self.padding = padding
         self.fb_features_size = fb_features_size
-        nn.init.normal_(self.weight_fb, std = math.sqrt(1./connect_channels * kernel_size * kernel_size))
+        nn.init.normal_(self.weight_fb, std = math.sqrt(1./(connect_channels * kernel_size * kernel_size)))
     
     def forward(self, input):
         return conv_feedback_reciever.apply(input, self.weight_fb, self.fb_features_size, self.stride, self.padding)

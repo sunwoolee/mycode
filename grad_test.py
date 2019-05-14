@@ -91,14 +91,26 @@ criterion = nn.CrossEntropyLoss()
 # optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
 optimizer = optim.RMSprop(net_bp.parameters(), lr=args.lr, momentum=0.9)
 
+def grad_sizes(net):
+    # Returns L2-NORM of gradients
+    fc3_grads = (net.fc3.weight.grad**2).mean()
+    fc2_grads = (net.fc2.weight.grad**2).mean()
+    fc1_grads = (net.fc1.weight.grad**2).mean()
+    conv4_grads = (net.conv4.weight.grad**2).mean()
+    conv3_grads = (net.conv3.weight.grad**2).mean()
+    conv2_grads = (net.conv2.weight.grad**2).mean()
+    conv1_grads = (net.conv1.weight.grad**2).mean()
+    return fc3_grads, fc2_grads, fc1_grads, conv4_grads, conv3_grads, conv2_grads, conv1_grads
+
+
 def grad_compare(net1, net2):
     conv1_grad_ratio = (net2.conv1.weight.grad.abs() + 1e-9 / net1.conv1.weight.grad.abs() + 1e-9).mean()
     conv2_grad_ratio = (net2.conv2.weight.grad.abs() + 1e-9 / net1.conv2.weight.grad.abs() + 1e-9).mean()
     conv3_grad_ratio = (net2.conv3.weight.grad.abs() + 1e-9 / net1.conv3.weight.grad.abs() + 1e-9).mean()
     conv4_grad_ratio = (net2.conv4.weight.grad.abs() + 1e-9 / net1.conv4.weight.grad.abs() + 1e-9).mean()
-    fc1_grad_ratio = (net2.fc1.weight.grad.abs() / net1.fc1.weight.grad.abs()).mean()
-    fc2_grad_ratio = (net2.fc2.weight.grad.abs() / net1.fc2.weight.grad.abs()).mean()
-    fc3_grad_ratio = (net2.fc3.weight.grad.abs() / net1.fc3.weight.grad.abs()).mean()
+    fc1_grad_ratio = (net2.fc1.weight.grad.abs() + 1e-9 / net1.fc1.weight.grad.abs() + 1e-9).mean()
+    fc2_grad_ratio = (net2.fc2.weight.grad.abs() + 1e-9/ net1.fc2.weight.grad.abs() + 1e-9).mean()
+    fc3_grad_ratio = (net2.fc3.weight.grad.abs() + 1e-9/ net1.fc3.weight.grad.abs() + 1e-9).mean()
     return conv1_grad_ratio, conv2_grad_ratio, conv3_grad_ratio, conv4_grad_ratio, fc1_grad_ratio, fc2_grad_ratio, fc3_grad_ratio
     #%%
 
@@ -127,6 +139,7 @@ def train(epoch):
         loss.backward()
 #%%
         if batch_idx % 100 == 99:
+            #%%
             net_fa.copy(net_bp)
             net_ifa.copy(net_bp)
             outputs_fa = net_fa(inputs)
@@ -137,8 +150,10 @@ def train(epoch):
             loss_ifa.backward()
             grad_ratios_fa[(batch_idx+1)//100 - 1] = grad_compare(net_bp, net_fa)
             grad_ratios_ifa[(batch_idx+1)//100 - 1] = grad_compare(net_bp, net_ifa)
+            #%%
             net_bp.zero_grad()
             net_fa.zero_grad()
+            #%%
 
             
 
