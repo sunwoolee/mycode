@@ -15,7 +15,7 @@ import numpy as np
 import os
 import argparse
 from models import * # LeNet_FA, LeNet_DFA, BaseNet_FA, BaseNet_DFA, BaseNet_IFA
-#from utils import progress_bar
+from utils import progress_bar
 
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
@@ -104,13 +104,13 @@ def grad_sizes(net):
 
 
 def grad_compare(net1, net2):
-    conv1_grad_ratio = (net2.conv1.weight.grad.abs() + 1e-9 / net1.conv1.weight.grad.abs() + 1e-9).mean()
-    conv2_grad_ratio = (net2.conv2.weight.grad.abs() + 1e-9 / net1.conv2.weight.grad.abs() + 1e-9).mean()
-    conv3_grad_ratio = (net2.conv3.weight.grad.abs() + 1e-9 / net1.conv3.weight.grad.abs() + 1e-9).mean()
-    conv4_grad_ratio = (net2.conv4.weight.grad.abs() + 1e-9 / net1.conv4.weight.grad.abs() + 1e-9).mean()
-    fc1_grad_ratio = (net2.fc1.weight.grad.abs() + 1e-9 / net1.fc1.weight.grad.abs() + 1e-9).mean()
-    fc2_grad_ratio = (net2.fc2.weight.grad.abs() + 1e-9/ net1.fc2.weight.grad.abs() + 1e-9).mean()
-    fc3_grad_ratio = (net2.fc3.weight.grad.abs() + 1e-9/ net1.fc3.weight.grad.abs() + 1e-9).mean()
+    conv1_grad_ratio = (net2.conv1.weight.grad.abs().mean() + 1e-9 / net1.conv1.weight.grad.abs().mean() + 1e-9)
+    conv2_grad_ratio = (net2.conv2.weight.grad.abs().mean() + 1e-9 / net1.conv2.weight.grad.abs().mean() + 1e-9)
+    conv3_grad_ratio = (net2.conv3.weight.grad.abs().mean() + 1e-9 / net1.conv3.weight.grad.abs().mean() + 1e-9)
+    conv4_grad_ratio = (net2.conv4.weight.grad.abs().mean() + 1e-9 / net1.conv4.weight.grad.abs().mean() + 1e-9)
+    fc1_grad_ratio = (net2.fc1.weight.grad.abs().mean() + 1e-9 / net1.fc1.weight.grad.abs().mean() + 1e-9).mean()
+    fc2_grad_ratio = (net2.fc2.weight.grad.abs().mean() + 1e-9/ net1.fc2.weight.grad.abs().mean() + 1e-9).mean()
+    fc3_grad_ratio = (net2.fc3.weight.grad.abs().mean() + 1e-9/ net1.fc3.weight.grad.abs().mean() + 1e-9).mean()
     return conv1_grad_ratio, conv2_grad_ratio, conv3_grad_ratio, conv4_grad_ratio, fc1_grad_ratio, fc2_grad_ratio, fc3_grad_ratio
     #%%
 
@@ -128,7 +128,6 @@ def train(epoch):
     grad_ratios_ifa = np.zeros([5,7])
 #%%
     for batch_idx, (inputs, targets) in enumerate(trainloader):
-    #%%
         inputs, targets = inputs.to(device), targets.to(device)
         optimizer.zero_grad()
 
@@ -137,6 +136,7 @@ def train(epoch):
 
         loss = criterion(outputs, targets)
         loss.backward()
+        optimizer.step()
 #%%
         if batch_idx % 100 == 99:
             #%%
@@ -167,8 +167,8 @@ def train(epoch):
         #if (batch_idx+1)%100==0:
         #    print('Loss: %.3f | Acc: %.3f%% (%d/%d)'
         #    % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
-        #progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-         #   % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
+        progress_bar(batch_idx, len(trainloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
+            % (train_loss/(batch_idx+1), 100.*correct/total, correct, total))
     return grad_ratios_fa, grad_ratios_ifa
 
 def test(epoch):
@@ -190,8 +190,8 @@ def test(epoch):
 
     #    print( 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
            #     % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
-           # progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
-             #   % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
+            progress_bar(batch_idx, len(testloader), 'Loss: %.3f | Acc: %.3f%% (%d/%d)'
+                % (test_loss/(batch_idx+1), 100.*correct/total, correct, total))
 
     # Save checkpoint.
     acc = 100.*correct/total
