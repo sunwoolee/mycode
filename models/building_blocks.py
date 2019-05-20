@@ -3,6 +3,38 @@ import torch.nn as nn
 import torch.nn.functional as F
 import math
 
+
+cclass forward_sampler(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, input, clip_point=1.0):
+        slope = 1./(2*clip_point)
+        clipped = torch.clamp(slope*input + 0.5, 0, 1 )
+        output =torch.bernoulli(clipped)
+        ctx.save_for_backward(input)
+        ctx.slope = slope
+        ctx.clip_point = clip_point
+        return output
+    
+    @staticmethod
+    def backward(ctx, grad_output):
+        grad_input = grad_cp = None
+        input, = ctx.saved_tensors
+        slope = ctx.slope
+        clip_point = ctx.clip_point
+        grad_input = slope * grad_output
+        grad_input[input.abs()>clip_point] = 0
+        return grad_input, grad_cp
+    
+    
+class Forward_Sampler(nn.Module):
+    def __init__(self, clip_point=1.0):
+        super(Forward_Sampler, self).__init__()
+        self.clip_point = clip_point
+    
+    def forward(self, x):
+        return forward_sampler.apply(x, self.clip_point)
+
+
 class linear_ifa(torch.autograd.Function):
     @staticmethod
     def forward(ctx, input, weight, bias, *dummies):
