@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import math
 
 
-cclass forward_sampler(torch.autograd.Function):
+class forward_sampler(torch.autograd.Function):
     @staticmethod
     def forward(ctx, input, clip_point=1.0):
         slope = 1./(2*clip_point)
